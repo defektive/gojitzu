@@ -1,0 +1,12 @@
+version: "1"
+tasks:
+
+  ## example
+  - title: Example 1
+    description: things are better with examples
+    labels:
+      - example1
+  - title: what
+    description: yep
+    labels:
+      - example2
