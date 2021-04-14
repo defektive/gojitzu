@@ -74,11 +74,7 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		templatePath, err := cmd.Flags().GetString("template")
-		if err != nil {
-			log.Printf("need tamplate #%v ", err)
-		}
-
+		templatePath := viper.GetString("template")
 		var template Template
 		template.load(templatePath)
 
