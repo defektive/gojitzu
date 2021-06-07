@@ -22,7 +22,6 @@ THE SOFTWARE.
 package cmd
 
 import (
-	"bufio"
 	"crypto/tls"
 	"fmt"
 	"github.com/andygrunwald/go-jira"
@@ -34,7 +33,7 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"regexp"
+	"path"
 	"strconv"
 	"time"
 )
@@ -74,40 +73,24 @@ var rootCmd = &cobra.Command{
 	// Uncomment the following line if your bare application
 	// has an action associated with it:
 	Run: func(cmd *cobra.Command, args []string) {
-		templatePath := viper.GetString("template")
-		var template Template
-		template.load(templatePath)
 
-		labels := map[string]bool{}
-		if len(labelsFlag) == 0 {
-			reader := bufio.NewReader(os.Stdin)
-			yesRegexp := regexp.MustCompile(`^[yY]`)
+		templates, _ := cmd.Flags().GetStringSlice("templates")
+		var templateTasks []Task
+		for _, templateName := range templates {
+			templatePath := path.Join(viper.GetString("templatepath"), templateName)
+			var template Template
+			template.load(templatePath)
+
 			for _, task := range template.Tasks {
-				if len(task.Title) == 0 || len(task.Description) == 0 {
-					panic("cant have emtpy tasks")
-				}
-				for _, label := range task.Labels {
-					if _, ok := labels[label]; !ok {
-						fmt.Printf("Create tasks with '%s' label? ", label)
-						yes, _ := reader.ReadString('\n')
-						labels[label] = yesRegexp.MatchString(yes)
-					}
-				}
-			}
-		} else {
-			for _, label := range labelsFlag {
-				labels[label] = true
+				fmt.Println(task.Title)
+				templateTasks = append(templateTasks, task)
 			}
 		}
 
-		var templateTasks []Task
-		for _, task := range template.Tasks {
-			for _, label := range task.Labels {
-				if labels[label] {
-					templateTasks = append(templateTasks, task)
-					break
-				}
-			}
+
+		if len(templateTasks) == 0 {
+			fmt.Println("Nothing to do")
+			return
 		}
 
 		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
@@ -220,14 +203,20 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
+	home, err := homedir.Dir()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gojitzu.yaml)")
 	rootCmd.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
 	rootCmd.PersistentFlags().StringP("project", "p", "", "project key")
-	rootCmd.PersistentFlags().StringP("template", "t", "template.yaml", "template file")
+	rootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
 	rootCmd.PersistentFlags().StringP("username", "U", "", "username to use")
 	rootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
 
+	rootCmd.Flags().StringSliceP("templates", "t", []string{}, "templates to use")
 	rootCmd.Flags().StringP("duedate", "d", "", "due date")
 	rootCmd.Flags().StringP("desc", "D", "", "Description")
 	rootCmd.Flags().StringP("epic", "e", "", "epic key to add issues to existing epic")
@@ -238,7 +227,7 @@ func init() {
 	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
 	viper.BindPFlag("username", rootCmd.PersistentFlags().Lookup("username"))
 	viper.BindPFlag("password", rootCmd.PersistentFlags().Lookup("password"))
-	viper.BindPFlag("template", rootCmd.PersistentFlags().Lookup("template"))
+	viper.BindPFlag("templatepath", rootCmd.PersistentFlags().Lookup("templatepath"))
 }
 
 // initConfig reads in config file and ENV variables if set.
