@@ -49,6 +49,7 @@ type Task struct {
 	Title       string   `yaml:"title"`
 	Description string   `yaml:"description"`
 	Labels      []string `yaml:"labels"`
+	Prefixable  bool     `yaml:"prefixable"`
 }
 type Template struct {
 	Version  string   `yaml:"version"`
@@ -180,8 +181,14 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
+		prefix, _ := cmd.Flags().GetString("prefix")
 		var newIssues []int
 		for _, task := range templateTasks {
+			title := task.Title
+			if prefix != "" && task.Prefixable {
+				title = fmt.Sprintf("%s %s", prefix, title)
+			}
+
 			i := jira.Issue{
 				Fields: &jira.IssueFields{
 					Description: task.Description,
@@ -191,7 +198,7 @@ var rootCmd = &cobra.Command{
 					Project: jira.Project{
 						Key: jiraProject.Key,
 					},
-					Summary:  task.Title,
+					Summary:  title,
 					Labels:   task.Labels,
 					Reporter: me,
 				},
@@ -266,6 +273,7 @@ func init() {
 	rootCmd.Flags().StringP("desc", "D", "", "Description")
 	rootCmd.Flags().StringP("epic", "e", "", "epic key to add issues to existing epic")
 	rootCmd.Flags().StringP("title", "T", "", "Title for the new epic")
+	rootCmd.Flags().String("prefix", "", "prefix for tasks that are prefixable")
 	//rootCmd.Flags().StringSliceVarP(&labelsFlag, "labels", "l", []string{},"template file")
 
 	viper.BindPFlag("baseurl", rootCmd.PersistentFlags().Lookup("baseurl"))
