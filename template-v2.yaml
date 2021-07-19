@@ -1,0 +1,14 @@
+version: "2"
+includes:
+  - template-v1.yaml
+tasks:
+
+  ## example
+  - title: Example 1 v2
+    description: things are better with examples
+    labels:
+      - example1-v2
+  - title: what v2
+    description: yep
+    labels:
+      - example2-v2

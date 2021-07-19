@@ -51,12 +51,14 @@ type Task struct {
 	Labels      []string `yaml:"labels"`
 }
 type Template struct {
-	Version string `yaml:"version"`
-	Tasks   []Task `yaml:"tasks"`
+	Version  string   `yaml:"version"`
+	Includes []string `yaml:"includes,omitempty"`
+	Tasks    []Task   `yaml:"tasks"`
 }
 
-func (tpl *Template) load(templatePath string) *Template {
-	yamlFile, err := ioutil.ReadFile(templatePath)
+func (tpl *Template) load(baseDir string, templatePath string, includedSoFar ...map[string]bool) *Template {
+	fullPath := filepath.Join(baseDir, templatePath)
+	yamlFile, err := ioutil.ReadFile(fullPath)
 	if err != nil {
 		log.Printf("yamlFile.Get err #%v ", err)
 	}
@@ -64,6 +66,32 @@ func (tpl *Template) load(templatePath string) *Template {
 	err = yaml.Unmarshal(yamlFile, tpl)
 	if err != nil {
 		log.Fatalf("Unmarshal: %v", err)
+	}
+
+	included := make(map[string]bool)
+	for _, inc := range includedSoFar {
+		for key := range inc {
+			if _, found := included[key]; found {
+				continue
+			}
+			included[key] = true
+		}
+	}
+
+	if includedSoFar == nil {
+		included[fullPath] = true
+	}
+
+	for _, includePath := range tpl.Includes {
+		fullIncludePath := filepath.Join(baseDir, includePath)
+		if _, found := included[fullIncludePath]; found {
+			continue
+		}
+		included[fullIncludePath] = true
+
+		var includedTpl Template
+		includedTpl.load(baseDir, includePath, included)
+		tpl.Tasks = append(tpl.Tasks, includedTpl.Tasks...)
 	}
 
 	return tpl
@@ -79,11 +107,11 @@ var rootCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 
 		templates, _ := cmd.Flags().GetStringSlice("templates")
+		templatesPath := viper.GetString("templatepath")
 		var templateTasks []Task
 		for _, templateName := range templates {
-			templatePath := path.Join(viper.GetString("templatepath"), templateName)
 			var template Template
-			template.load(templatePath)
+			template.load(templatesPath, templateName)
 
 			for _, task := range template.Tasks {
 				fmt.Println(task.Title)
