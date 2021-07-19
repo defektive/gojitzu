@@ -24,18 +24,22 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
-	"github.com/andygrunwald/go-jira"
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
+	"io/fs"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
 	"path"
+	"path/filepath"
 	"strconv"
+	"strings"
 	"time"
+
+	"github.com/andygrunwald/go-jira"
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 var cfgFile string
@@ -48,7 +52,7 @@ type Task struct {
 }
 type Template struct {
 	Version string `yaml:"version"`
-	Tasks []Task   `yaml:"tasks"`
+	Tasks   []Task `yaml:"tasks"`
 }
 
 func (tpl *Template) load(templatePath string) *Template {
@@ -87,7 +91,6 @@ var rootCmd = &cobra.Command{
 			}
 		}
 
-
 		if len(templateTasks) == 0 {
 			fmt.Println("Nothing to do")
 			return
@@ -97,8 +100,8 @@ var rootCmd = &cobra.Command{
 
 		base := viper.GetString("baseurl")
 		username := viper.GetString("username")
-		password:= viper.GetString("password")
-		projectKey :=  viper.GetString("project")
+		password := viper.GetString("password")
+		projectKey := viper.GetString("project")
 		epicKey, _ := cmd.Flags().GetString("epic")
 
 		tp := jira.BasicAuthTransport{
@@ -160,9 +163,9 @@ var rootCmd = &cobra.Command{
 					Project: jira.Project{
 						Key: jiraProject.Key,
 					},
-					Summary: task.Title,
-					Labels: task.Labels,
-					Reporter:    me,
+					Summary:  task.Title,
+					Labels:   task.Labels,
+					Reporter: me,
 				},
 			}
 			newIssue, resp, err := jiraClient.Issue.Create(&i)
@@ -217,6 +220,20 @@ func init() {
 	rootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
 
 	rootCmd.Flags().StringSliceP("templates", "t", []string{}, "templates to use")
+	rootCmd.RegisterFlagCompletionFunc("templates", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
+		templatesPath := viper.GetString("templatepath")
+		var templates []string
+		filepath.WalkDir(templatesPath, func(path string, d fs.DirEntry, err error) error {
+			ext := strings.ToLower(filepath.Ext(d.Name()))
+			if !d.IsDir() && (ext == ".yaml" || ext == ".yml") {
+				templatePath, _ := filepath.Rel(templatesPath, path)
+				templates = append(templates, templatePath)
+			}
+			return nil
+		})
+		return templates, cobra.ShellCompDirectiveDefault
+	})
+
 	rootCmd.Flags().StringP("duedate", "d", "", "due date")
 	rootCmd.Flags().StringP("desc", "D", "", "Description")
 	rootCmd.Flags().StringP("epic", "e", "", "epic key to add issues to existing epic")
