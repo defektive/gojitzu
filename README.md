@@ -1,7 +1,7 @@
 
 # gojitzu
 
-Create 
+Create issues in Jira epic's so you dont have to :D
 
 ## Installation
 
