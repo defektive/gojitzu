@@ -14,5 +14,6 @@ tasks:
       - example2-v2
   - title: prefixable
     description: this task is prefixable
+    prefixable: true
     labels:
       - example3-prefixable
