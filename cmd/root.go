@@ -143,7 +143,6 @@ var rootCmd = &cobra.Command{
 			panic(err)
 		}
 
-		me, _, _ := jiraClient.User.GetSelf()
 		jiraProject, resp, err := jiraClient.Project.Get(projectKey)
 		if err != nil {
 			//body, _ := ioutil.ReadAll(resp.Body)
@@ -200,7 +199,6 @@ var rootCmd = &cobra.Command{
 					},
 					Summary:  title,
 					Labels:   task.Labels,
-					Reporter: me,
 				},
 			}
 			newIssue, resp, err := jiraClient.Issue.Create(&i)
