@@ -132,6 +132,7 @@ var rootCmd = &cobra.Command{
 		password := viper.GetString("password")
 		projectKey := viper.GetString("project")
 		epicKey, _ := cmd.Flags().GetString("epic")
+		nextGen, _ := cmd.Flags().GetBool("nextgen")
 
 		tp := jira.BasicAuthTransport{
 			Username: username,
@@ -145,88 +146,166 @@ var rootCmd = &cobra.Command{
 
 		jiraProject, resp, err := jiraClient.Project.Get(projectKey)
 		if err != nil {
-			//body, _ := ioutil.ReadAll(resp.Body)
-			//fmt.Println(string(body))
+			body, _ := ioutil.ReadAll(resp.Body)
+			fmt.Println(string(body))
 			panic(err)
 		}
 
-		fmt.Println(jiraProject.Key)
-		var jiraEpic *jira.Issue
-		if len(epicKey) > 0 {
-			jiraEpic, _, _ = jiraClient.Issue.Get(epicKey, nil)
+		if !nextGen {
+			fieldList, _, _ := jiraClient.Field.GetList()
+
+			var customFieldID string
+			for _, v := range fieldList {
+				if v.Name == "Epic Link" {
+					customFieldID = v.ID
+					break
+				}
+			}
+
+			if len(epicKey) == 0 {
+				title, _ := cmd.Flags().GetString("title")
+				description, _ := cmd.Flags().GetString("desc")
+				due, _ := cmd.Flags().GetString("duedate")
+				fmt.Println(title, description)
+				const dateFmt = "2006-01-02"
+				dueDateTime, _ := time.Parse(dateFmt, due)
+				i := jira.Issue{
+					Fields: &jira.IssueFields{
+						Description: description,
+						Type: jira.IssueType{
+							Name: "Epic",
+						},
+						Project: jira.Project{
+							Key: jiraProject.Key,
+						},
+						Summary: title,
+						Duedate: jira.Date(dueDateTime),
+					},
+				}
+				jiraEpic, _, err := jiraClient.Issue.Create(&i)
+				if err != nil {
+					panic(err)
+				}
+				epicKey = jiraEpic.Key
+			}
+
+			prefix, _ := cmd.Flags().GetString("prefix")
+			var newIssues []int
+			var newKeys []string
+			for _, task := range templateTasks {
+				title := task.Title
+				if prefix != "" && task.Prefixable {
+					title = fmt.Sprintf("%s %s", prefix, title)
+				}
+
+				i := jira.Issue{
+					Fields: &jira.IssueFields{
+						Description: task.Description,
+						Type: jira.IssueType{
+							Name: "Task",
+						},
+						Project: jira.Project{
+							Key: jiraProject.Key,
+						},
+						Summary: title,
+						Unknowns: map[string]interface{}{
+							customFieldID: epicKey,
+						},
+						Labels: task.Labels,
+					},
+				}
+				newIssue, resp, err := jiraClient.Issue.Create(&i)
+				if err != nil {
+					body, _ := ioutil.ReadAll(resp.Body)
+					fmt.Println(string(body))
+					panic(err)
+				}
+
+				intID, err := strconv.Atoi(newIssue.ID)
+				fmt.Printf("Created %s\n", task.Title)
+				newIssues = append(newIssues, intID)
+				newKeys = append(newKeys, newIssue.Key)
+			}
+
+			fmt.Printf("Done %s\n", epicKey)
 		} else {
-			title, _ := cmd.Flags().GetString("title")
-			description, _ := cmd.Flags().GetString("desc")
-			due, _ := cmd.Flags().GetString("duedate")
-			fmt.Println(title, description)
-			const dateFmt = "2006-01-02"
-			dueDateTime, _ := time.Parse(dateFmt, due)
-			i := jira.Issue{
-				Fields: &jira.IssueFields{
-					Description: description,
-					Type: jira.IssueType{
-						Name: "Epic",
+			var jiraEpic *jira.Issue
+			if len(epicKey) > 0 {
+				jiraEpic, _, _ = jiraClient.Issue.Get(epicKey, nil)
+			} else {
+				title, _ := cmd.Flags().GetString("title")
+				description, _ := cmd.Flags().GetString("desc")
+				due, _ := cmd.Flags().GetString("duedate")
+				fmt.Println(title, description)
+				const dateFmt = "2006-01-02"
+				dueDateTime, _ := time.Parse(dateFmt, due)
+				i := jira.Issue{
+					Fields: &jira.IssueFields{
+						Description: description,
+						Type: jira.IssueType{
+							Name: "Epic",
+						},
+						Project: jira.Project{
+							Key: jiraProject.Key,
+						},
+						Summary: title,
+						Duedate: jira.Date(dueDateTime),
 					},
-					Project: jira.Project{
-						Key: jiraProject.Key,
-					},
-					Summary: title,
-					Duedate: jira.Date(dueDateTime),
-				},
-			}
-			jiraEpic, _, err = jiraClient.Issue.Create(&i)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		prefix, _ := cmd.Flags().GetString("prefix")
-		var newIssues []int
-		for _, task := range templateTasks {
-			title := task.Title
-			if prefix != "" && task.Prefixable {
-				title = fmt.Sprintf("%s %s", prefix, title)
+				}
+				jiraEpic, _, err = jiraClient.Issue.Create(&i)
+				if err != nil {
+					panic(err)
+				}
 			}
 
-			i := jira.Issue{
-				Fields: &jira.IssueFields{
-					Description: task.Description,
-					Type: jira.IssueType{
-						Name: "Task",
+			prefix, _ := cmd.Flags().GetString("prefix")
+			var newIssues []int
+			for _, task := range templateTasks {
+				title := task.Title
+				if prefix != "" && task.Prefixable {
+					title = fmt.Sprintf("%s %s", prefix, title)
+				}
+
+				i := jira.Issue{
+					Fields: &jira.IssueFields{
+						Description: task.Description,
+						Type: jira.IssueType{
+							Name: "Task",
+						},
+						Project: jira.Project{
+							Key: jiraProject.Key,
+						},
+						Summary: title,
+						Labels:  task.Labels,
 					},
-					Project: jira.Project{
-						Key: jiraProject.Key,
-					},
-					Summary:  title,
-					Labels:   task.Labels,
-				},
+				}
+				newIssue, resp, err := jiraClient.Issue.Create(&i)
+				if err != nil {
+					body, _ := ioutil.ReadAll(resp.Body)
+					fmt.Println(string(body))
+					panic(err)
+				}
+
+				intID, err := strconv.Atoi(newIssue.ID)
+				fmt.Printf("Created %s\n", task.Title)
+				newIssues = append(newIssues, intID)
 			}
-			newIssue, resp, err := jiraClient.Issue.Create(&i)
+
+			//add issues to epic
+			//for some reason, jira wouldn't let me set the epic link when creating issues. so this is what i am doing instead
+			epicPath := fmt.Sprintf("/rest/internal/simplified/1.0/projects/%s/issues/%s/children", jiraProject.ID, jiraEpic.ID)
+			epicIssues := make(map[string][]int)
+			epicIssues["issueIds"] = newIssues
+
+			req, err := jiraClient.NewRequest("POST", epicPath, epicIssues)
+			resp, err = jiraClient.Do(req, nil)
 			if err != nil {
 				body, _ := ioutil.ReadAll(resp.Body)
 				fmt.Println(string(body))
 				panic(err)
 			}
-
-			intID, err := strconv.Atoi(newIssue.ID)
-			fmt.Printf("Created %s\n", task.Title)
-			newIssues = append(newIssues, intID)
+			fmt.Printf("Done %s\n", jiraEpic.Key)
 		}
-
-		// add issues to epic
-		// for some reason, jira wouldn't let me set the epic link when creating issues. so this is what i am doing instead
-		epicPath := fmt.Sprintf("/rest/internal/simplified/1.0/projects/%s/issues/%s/children", jiraProject.ID, jiraEpic.ID)
-		epicIssues := make(map[string][]int)
-		epicIssues["issueIds"] = newIssues
-		req, err := jiraClient.NewRequest("POST", epicPath, epicIssues)
-
-		resp, err = jiraClient.Do(req, nil)
-		if err != nil {
-			body, _ := ioutil.ReadAll(resp.Body)
-			fmt.Println(string(body))
-			panic(err)
-		}
-		fmt.Printf("Done %s\n", jiraEpic.Key)
 	},
 }
 
@@ -251,6 +330,7 @@ func init() {
 	rootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
 	rootCmd.PersistentFlags().StringP("username", "U", "", "username to use")
 	rootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
+	rootCmd.PersistentFlags().BoolP("nextgen", "n", false, "specify next gen projects")
 
 	rootCmd.Flags().StringSliceP("templates", "t", []string{}, "templates to use")
 	rootCmd.RegisterFlagCompletionFunc("templates", func(cmd *cobra.Command, args []string, toComplete string) ([]string, cobra.ShellCompDirective) {
