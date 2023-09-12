@@ -24,6 +24,7 @@ package cmd
 import (
 	"crypto/tls"
 	"fmt"
+	"io"
 	"io/fs"
 	"io/ioutil"
 	"log"
@@ -146,7 +147,7 @@ var rootCmd = &cobra.Command{
 
 		jiraProject, resp, err := jiraClient.Project.Get(projectKey)
 		if err != nil {
-			body, _ := ioutil.ReadAll(resp.Body)
+			body, _ := io.ReadAll(resp.Body)
 			fmt.Println(string(body))
 			panic(err)
 		}
