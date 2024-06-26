@@ -4,10 +4,28 @@ includes:
 tasks:
 
   ## example
-  - title: Example 1 v2
+  - title: Main Task One
     description: things are better with examples
     labels:
       - example1-v2
+
+    subtasks:
+
+      ## example
+      - title: Action Item One
+        description: things are better with examples
+        labels:
+          - example1-v2
+      - title: Action Item Two
+        description: yep
+        labels:
+          - example2-v2
+      - title: prefixable Action Item Three
+        description: this task is prefixable
+        prefixable: true
+        labels:
+          - example3-prefixable
+
   - title: what v2
     description: yep
     labels:
