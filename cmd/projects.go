@@ -4,115 +4,62 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
-	"strings"
-
 	"github.com/andygrunwald/go-jira"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"io"
+	"net/http"
 )
 
-type ProjectSearchResponse struct {
-	Total  int `json:"total"`
-	Values []struct {
-		Key  string `json:"key"`
-		Name string `json:"name"`
-	} `json:"values"`
-}
-
-func fetchProjectsManually(client *http.Client, base, user, token string) ([]byte, error) {
-
-	//req, err := http.NewRequest("GET", base+"/rest/api/3/project/search", nil)
-	req, err := http.NewRequest("GET", base+"/rest/api/3/project/search?maxResults=100", nil)
-	if err != nil {
-		return nil, err
-	}
-
-	req.SetBasicAuth(user, token)
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	return io.ReadAll(resp.Body)
-}
-
+// projectsCmd represents the projects command
 var projectsCmd = &cobra.Command{
 	Use:   "projects",
 	Short: "List projects",
 	Long:  `List all projects`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		base := strings.TrimRight(strings.TrimSpace(viper.GetString("baseurl")), "/")
-		username := strings.TrimSpace(viper.GetString("username"))
-		password := strings.TrimSpace(viper.GetString("password"))
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
-		fmt.Println("✅ JIRA Base:", base)
-
-		transport := &http.Transport{
-			TLSClientConfig: &tls.Config{
-				InsecureSkipVerify: true,
-			},
-			Proxy: http.ProxyFromEnvironment,
-		}
+		base := viper.GetString("baseurl")
+		username := viper.GetString("username")
+		password := viper.GetString("password")
 
 		tp := jira.BasicAuthTransport{
 			Username: username,
 			Password: password,
 		}
 
-		authClient := tp.Client()
-		authClient.Transport = transport
-
-		// Manual Cloud-safe test first
-		req, _ := http.NewRequest("GET", base+"/rest/api/3/myself", nil)
-		req.SetBasicAuth(username, password)
-
-		respCheck, err := authClient.Do(req)
+		jiraClient, err := jira.NewClient(tp.Client(), base)
 		if err != nil {
-			fmt.Println("AUTH CHECK REQUEST FAILED:", err)
-			return
-		}
-		defer respCheck.Body.Close()
-
-		if respCheck.StatusCode != 200 {
-			fmt.Println("🚨 Jira authentication failed. Stopping here.")
-			return
+			panic(err)
 		}
 
-		fmt.Println("✅ Jira authentication confirmed")
-
-		raw, err := fetchProjectsManually(authClient, base, username, password)
+		jiraProjects, resp, err := jiraClient.Project.GetList()
 		if err != nil {
-			fmt.Println("Project search failed:", err)
-			return
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println(string(body))
+			panic(err)
 		}
 
-		var response ProjectSearchResponse
-		err = json.Unmarshal(raw, &response)
+		jsonBytes, err := json.MarshalIndent(*jiraProjects, "", "  ")
 		if err != nil {
-			fmt.Println("JSON parse error:", err)
-			fmt.Println("Raw response:", string(raw))
-			return
-		}
-		fmt.Printf("Jira reported %d total projects\n", response.Total)
-
-		if len(response.Values) == 0 {
-			fmt.Println("No projects returned by Jira Cloud")
-			fmt.Println("Raw response:", string(raw))
-			return
+			panic(err)
 		}
 
-		fmt.Println("✅ Projects found:")
-		for _, p := range response.Values {
-			fmt.Printf(" - %s : %s\n", p.Key, p.Name)
-		}
+		fmt.Println(string(jsonBytes))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(projectsCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// projectsCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// projectsCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

@@ -2,17 +2,16 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
-	"os"
-	"path"
-	"path/filepath"
-
 	"github.com/defektive/gojitzu/pkg/config"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
+	"io/ioutil"
+	"log"
+	"os"
+	"path"
+	"path/filepath"
 )
 
 var cfgFile string
@@ -91,7 +90,18 @@ func (tpl *Template) load(baseDir string, templatePath string, includedSoFar ...
 	return tpl
 }
 
-// Standard CLI Entry
+// rootCmd represents the base command when called without any subcommands
+var rootCmd = &cobra.Command{
+	Use:   "gojitzu",
+	Short: "Create tickets",
+	Long:  `Create test`,
+	// Uncomment the following line if your bare application
+	// has an action associated with it:
+	//Run: func(cmd *cobra.Command, args []string) {
+	//
+	//},
+}
+
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
 		fmt.Println(err)
@@ -109,9 +119,8 @@ var rootCmd = &cobra.Command{
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	home, _ := homedir.Dir()
-
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is ~/.gojitzu.yaml)")
+	//rootCmd.Flags().StringSliceVarP(&labelsFlag, "labels", "l", []string{},"template file")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gojitzu.yaml)")
 	rootCmd.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
 	rootCmd.PersistentFlags().StringP("project", "p", "", "project key")
 	rootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "template path")
@@ -125,36 +134,9 @@ func init() {
 	viper.BindPFlag("templatepath", rootCmd.PersistentFlags().Lookup("templatepath"))
 }
 
-// ✅ Fresh command instance used by GUI
-func NewRootCommand() *cobra.Command {
+var Config = config.ConfigMap{}
 
-	root := &cobra.Command{
-		Use:   "gojitzu",
-		Short: "Create tickets",
-		Long:  `Create test`,
-	}
-
-	root.AddCommand(issuesCmd)
-	root.AddCommand(projectsCmd)
-	root.AddCommand(NewTplCommand())
-
-	root.PersistentFlags().StringVar(&cfgFile, "config", "", "config file")
-	root.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
-	root.PersistentFlags().StringP("project", "p", "", "project key")
-	root.PersistentFlags().StringP("templatepath", "g", "", "template path")
-	root.PersistentFlags().StringP("username", "U", "", "username")
-	root.PersistentFlags().StringP("password", "P", "", "token")
-
-	viper.BindPFlag("baseurl", root.PersistentFlags().Lookup("baseurl"))
-	viper.BindPFlag("project", root.PersistentFlags().Lookup("project"))
-	viper.BindPFlag("username", root.PersistentFlags().Lookup("username"))
-	viper.BindPFlag("password", root.PersistentFlags().Lookup("password"))
-	viper.BindPFlag("templatepath", root.PersistentFlags().Lookup("templatepath"))
-
-	return root
-}
-
-// ✅ Config loader
+// initConfig reads in config file and ENV variables if set.
 func initConfig() {
 
 	if cfgFile != "" {
@@ -174,9 +156,19 @@ func initConfig() {
 	fmt.Println("📂 Loaded config:", viper.ConfigFileUsed())
 	fmt.Println("🔧 baseurl loaded:", viper.GetString("baseurl"))
 
-	raw, err := os.ReadFile(viper.ConfigFileUsed())
+	// If a config file is found, read it in.
+	if err := viper.ReadInConfig(); err != nil {
+		fmt.Println("Error config file:", viper.ConfigFileUsed(), err)
+	}
+
+	configByte, err := os.ReadFile(viper.ConfigFileUsed())
 	if err != nil {
-		return
+		fmt.Println("error parseing config", err)
+	}
+
+	err = yaml.Unmarshal(configByte, &Config)
+	if err != nil {
+		fmt.Println("error unmarshalling yaml", err)
 	}
 
 	yaml.Unmarshal(raw, &Config)

@@ -4,112 +4,71 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"github.com/andygrunwald/go-jira"
+	"github.com/spf13/viper"
 	"io"
 	"net/http"
-	"net/url"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-type JiraSearchResponse struct {
-	StartAt    int         `json:"startAt"`
-	MaxResults int         `json:"maxResults"`
-	Total      int         `json:"total"`
-	Issues     []JiraIssue `json:"issues"`
-}
-
-type JiraIssue struct {
-	ID     string `json:"id"`
-	Key    string `json:"key"`
-	Fields struct {
-		Summary     string      `json:"summary"`
-		Description interface{} `json:"description"`
-		Parent      *struct {
-			Key    string `json:"key"`
-			Fields struct {
-				Summary string `json:"summary"`
-			} `json:"fields"`
-		} `json:"parent,omitempty"`
-	} `json:"fields"`
-}
-
+// issuesCmd represents the issues command
 var issuesCmd = &cobra.Command{
 	Use:   "issues",
 	Short: "List issues",
+	Long:  `List issues within the project.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		jql, _ := cmd.Flags().GetString("jql")
 
-		if jql == "" {
-			fmt.Println("❌ JQL is required. Example:")
-			fmt.Println(`gojitzu issues -j "project = OS ORDER BY updated DESC"`)
-			return
-		}
+		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{InsecureSkipVerify: true}
 
 		base := viper.GetString("baseurl")
 		username := viper.GetString("username")
 		password := viper.GetString("password")
 
-		fmt.Println("🔥 issues command called")
-		fmt.Println("Running JQL:", jql)
-
-		http.DefaultTransport.(*http.Transport).TLSClientConfig = &tls.Config{
-			InsecureSkipVerify: true,
+		tp := jira.BasicAuthTransport{
+			Username: username,
+			Password: password,
 		}
 
-		encodedJql := url.QueryEscape(jql)
-
-		api := base + "/rest/api/3/search/jql?jql=" + encodedJql + "&maxResults=100&fields=summary,parent"
-
-		req, err := http.NewRequest("GET", api, nil)
+		jiraClient, err := jira.NewClient(tp.Client(), base)
 		if err != nil {
-			fmt.Println("Failed to build request:", err)
-			return
+			panic(err)
 		}
 
-		req.SetBasicAuth(username, password)
+		last := 0
 
-		client := &http.Client{}
+		opt := &jira.SearchOptions{
+			MaxResults: 1000, // Max results can go up to 1000
+			StartAt:    last,
+		}
 
-		resp, err := client.Do(req)
+		issues, resp, err := jiraClient.Issue.Search(jql, opt)
 		if err != nil {
-			fmt.Println("Request failed:", err)
-			return
-		}
-		defer resp.Body.Close()
-
-		body, _ := io.ReadAll(resp.Body)
-
-		if resp.StatusCode != 200 {
-			fmt.Println("❌ JIRA ERROR BODY:", string(body))
-			fmt.Println("Status:", resp.Status)
-			return
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println(string(body))
+			panic(err)
 		}
 
-		var result JiraSearchResponse
-
-		err = json.Unmarshal(body, &result)
+		jsonBytes, err := json.MarshalIndent(issues, "", "  ")
 		if err != nil {
-			fmt.Println("JSON Parsing Error:", err)
-			fmt.Println("Raw Body:", string(body))
-			return
+			panic(err)
 		}
 
-		//fmt.Printf("✅ Issues returned: %d\n", len(result.Issues.([]interface{})))
-		//fmt.Printf("✅ Issues returned: %d\n", len(result.Issues))
-		//fmt.Printf("✅ Jira says total issues: %d\n", result.Total)
-
-		if result.Total == 0 {
-			fmt.Println("⚠️ WARNING: No issues returned for JQL:", jql)
-		}
-
-		pretty, _ := json.MarshalIndent(result.Issues, "", "  ")
-		fmt.Println(string(pretty))
+		fmt.Println(string(jsonBytes))
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(issuesCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// issuesCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
 	issuesCmd.Flags().StringP("jql", "j", "", "JQL to search")
 }
