@@ -1,0 +1,83 @@
+# ================================
+# Go Build & Modules
+# ================================
+bin/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Vendor folder (managed by go mod vendor if needed)
+vendor/
+
+# ================================
+# Wails / GUI Build
+# ================================
+gui/GojitzuGui/frontend/node_modules/
+gui/GojitzuGui/frontend/dist/
+gui/GojitzuGui/wailsjs/
+gui/GojitzuGui/frontend/wailsjs/
+
+
+# Wails build outputs (binaries / packaged apps)
+gui/GojitzuGui/build/bin/
+gui/GojitzuGui/build/*.exe
+gui/GojitzuGui/build/*.app
+gui/GojitzuGui/build/*.zip
+gui/GojitzuGui/build/*.msi
+
+
+# ================================
+# IDE Files
+# ================================
+.idea/
+.vscode/
+*.iml
+
+# ================================
+# OS Junk
+# ================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ================================
+# Secrets & Local Config
+# ================================
+.gojitzu.yaml
+.env
+*.pem
+*.key
+*.crt
+
+# ================================
+# Logs & Temp
+# ================================
+*.log
+*.tmp
+*.swp
+
+# ================================
+# GoLand / IntelliJ Caches
+# ================================
+*.iws
+*.ipr
+
+# ================================
+# Node cache (if any)
+# ================================
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# ================================
+# Windows system files
+# ================================
+ehthumbs.db
+
+# ================================
+# Other files
+# ================================
+*.md5

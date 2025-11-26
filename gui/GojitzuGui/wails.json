@@ -1,0 +1,13 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "GojitzuGui",
+  "outputfilename": "GojitzuGui",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "strykethru",
+    "email": "30347896+strykethru@users.noreply.github.com"
+  }
+}

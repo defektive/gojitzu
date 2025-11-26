@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Gojitzu GUI</title>
+    <link rel="stylesheet" href="./src/style.css">
+    <link rel="icon" href="data:,">
+</head>
+<body>
+
+<div id="app">
+
+    <!-- Top Bar -->
+    <div class="topbar">
+        Gojitzu GUI
+    </div>
+
+    <!-- Main Content -->
+    <div class="content">
+
+        <!-- LEFT CONTROL PANEL -->
+        <div class="control-panel">
+
+            <div class="block">
+                <label>Project</label>
+                <div class="inline">
+                    <select id="projectSelect"></select>
+                    <button id="refreshProjects" title="Refresh Projects">⟳</button>
+                </div>
+            </div>
+
+            <div class="block">
+                <label>Epic</label>
+                <div class="inline">
+                    <div class="combo-box">
+                        <input
+                                type="text"
+                                id="epicInput"
+                                placeholder="Select or search epic..."
+                        >
+                        <div id="epicDropdown" class="combo-dropdown"></div>
+                    </div>
+                    <button id="refreshEpics" title="Refresh Epics">⟳</button>
+                </div>
+            </div>
+
+            <!-- Templates Section -->
+            <div class="block">
+                <label>Templates (0 total | 0 selected)</label>
+
+                <div class="Template-toolbar">
+                    <input
+                            type="text"
+                            id="templateSearch"
+                            placeholder="Search templates..."
+                    />
+                    <button id="refreshTemplates" title="Refresh Templates">⟳</button>
+                </div>
+
+                <div id="templatesContainer">
+                    <!-- templates dynamically populated -->
+                </div>
+            </div>
+
+            <div class="block">
+                <button id="previewBtn" class="preview-btn">▶ Preview Command</button>
+                <button id="runBtn" class="run-btn">▶ Run Gojitzu</button>
+            </div>
+
+        </div>
+
+        <!-- RIGHT OUTPUT PANEL -->
+        <div class="output-panel">
+
+            <!-- Debug Output (Collapsible) -->
+            <div class="block">
+
+                <div id="debugHeader" class="collapsible-header">
+                    ▼ Debug Output
+                </div>
+
+                <div id="debugContent" class="collapsible-content open">
+                    <pre id="debugOutput"></pre>
+                </div>
+
+            </div>
+
+            <!-- Main Output -->
+            <div class="block">
+
+                <div class="output-header">Output</div>
+
+                <pre id="mainOutput"></pre>
+
+            </div>
+
+        </div>
+
+
+    </div>
+</div>
+
+<!-- Wails Runtime (REQUIRED for Events + Bindings) -->
+<script type="module" src="/wailsjs/runtime/runtime.js"></script>
+<script type="module" src="/wailsjs/go/main/App.js"></script>
+
+<!-- Your UI logic -->
+<script type="module" src="./src/main.js"></script>
+
+</body>
+</html>
+
