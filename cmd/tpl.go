@@ -313,7 +313,7 @@ var tplCmd = &cobra.Command{
 
 func init() {
 
-	rootCmd.AddCommand(tplCmd)
+	RootCmd.AddCommand(tplCmd)
 
 	tplCmd.PersistentFlags().BoolP("nextgen", "n", false, "specify next gen projects")
 

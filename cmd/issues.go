@@ -62,7 +62,7 @@ var issuesCmd = &cobra.Command{
 }
 
 func init() {
-	rootCmd.AddCommand(issuesCmd)
+	RootCmd.AddCommand(issuesCmd)
 
 	// Here you will define your flags and configuration settings.
 

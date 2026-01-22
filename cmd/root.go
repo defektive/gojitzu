@@ -2,16 +2,17 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/defektive/gojitzu/pkg/config"
-	homedir "github.com/mitchellh/go-homedir"
-	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"log"
 	"os"
 	"path"
 	"path/filepath"
+
+	"github.com/defektive/gojitzu/pkg/config"
+	homedir "github.com/mitchellh/go-homedir"
+	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
 var cfgFile string
@@ -79,8 +80,8 @@ func (tpl *Template) load(baseDir string, templatePath string, includedSoFar ...
 	return tpl
 }
 
-// rootCmd represents the base command when called without any subcommands
-var rootCmd = &cobra.Command{
+// RootCmd represents the base command when called without any subcommands
+var RootCmd = &cobra.Command{
 	Use:   "gojitzu",
 	Short: "Create tickets",
 	Long:  `Create test`,
@@ -92,7 +93,7 @@ var rootCmd = &cobra.Command{
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	if err := RootCmd.Execute(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
@@ -106,19 +107,19 @@ func init() {
 		os.Exit(1)
 	}
 
-	//rootCmd.Flags().StringSliceVarP(&labelsFlag, "labels", "l", []string{},"template file")
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gojitzu.yaml)")
-	rootCmd.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
-	rootCmd.PersistentFlags().StringP("project", "p", "", "project key")
-	rootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
-	rootCmd.PersistentFlags().StringP("username", "U", "", "username to use")
-	rootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
+	//RootCmd.Flags().StringSliceVarP(&labelsFlag, "labels", "l", []string{},"template file")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gojitzu.yaml)")
+	RootCmd.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
+	RootCmd.PersistentFlags().StringP("project", "p", "", "project key")
+	RootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
+	RootCmd.PersistentFlags().StringP("username", "U", "", "username to use")
+	RootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
 
-	viper.BindPFlag("baseurl", rootCmd.PersistentFlags().Lookup("baseurl"))
-	viper.BindPFlag("project", rootCmd.PersistentFlags().Lookup("project"))
-	viper.BindPFlag("username", rootCmd.PersistentFlags().Lookup("username"))
-	viper.BindPFlag("password", rootCmd.PersistentFlags().Lookup("password"))
-	viper.BindPFlag("templatepath", rootCmd.PersistentFlags().Lookup("templatepath"))
+	viper.BindPFlag("baseurl", RootCmd.PersistentFlags().Lookup("baseurl"))
+	viper.BindPFlag("project", RootCmd.PersistentFlags().Lookup("project"))
+	viper.BindPFlag("username", RootCmd.PersistentFlags().Lookup("username"))
+	viper.BindPFlag("password", RootCmd.PersistentFlags().Lookup("password"))
+	viper.BindPFlag("templatepath", RootCmd.PersistentFlags().Lookup("templatepath"))
 }
 
 var Config = config.ConfigMap{}
