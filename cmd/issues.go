@@ -4,10 +4,11 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
-	"github.com/andygrunwald/go-jira"
-	"github.com/spf13/viper"
 	"io"
 	"net/http"
+
+	"github.com/andygrunwald/go-jira"
+	"github.com/spf13/viper"
 
 	"github.com/spf13/cobra"
 )
@@ -36,14 +37,15 @@ var issuesCmd = &cobra.Command{
 			panic(err)
 		}
 
-		last := 0
+		last := ""
 
-		opt := &jira.SearchOptions{
-			MaxResults: 1000, // Max results can go up to 1000
-			StartAt:    last,
+		opt := &jira.SearchOptionsV2{
+			MaxResults:    1000, // Max results can go up to 1000
+			NextPageToken: last,
+			Fields:        []string{"*all"},
 		}
 
-		issues, resp, err := jiraClient.Issue.Search(jql, opt)
+		issues, resp, err := jiraClient.Issue.SearchV2JQL(jql, opt)
 		if err != nil {
 			body, _ := io.ReadAll(resp.Body)
 			fmt.Println(string(body))
