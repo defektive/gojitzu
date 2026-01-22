@@ -111,7 +111,7 @@ func init() {
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.gojitzu.yaml)")
 	RootCmd.PersistentFlags().StringP("baseurl", "b", "", "base url for jira")
 	RootCmd.PersistentFlags().StringP("project", "p", "", "project key")
-	RootCmd.PersistentFlags().StringP("templatepath", "g", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
+	RootCmd.PersistentFlags().StringP("templatepath", "T", path.Join(home, ".gojitzu-templates"), "$HOME/.gojitzu-templates")
 	RootCmd.PersistentFlags().StringP("username", "U", "", "username to use")
 	RootCmd.PersistentFlags().StringP("password", "P", "", "password/token")
 
