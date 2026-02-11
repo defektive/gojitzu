@@ -37,20 +37,7 @@ var issuesCmd = &cobra.Command{
 			panic(err)
 		}
 
-		last := ""
-
-		opt := &jira.SearchOptionsV2{
-			MaxResults:    1000, // Max results can go up to 1000
-			NextPageToken: last,
-			Fields:        []string{"*all"},
-		}
-
-		issues, resp, err := jiraClient.Issue.SearchV2JQL(jql, opt)
-		if err != nil {
-			body, _ := io.ReadAll(resp.Body)
-			fmt.Println(string(body))
-			panic(err)
-		}
+		issues := GetAllIssues(jiraClient, jql)
 
 		jsonBytes, err := json.MarshalIndent(issues, "", "  ")
 		if err != nil {
