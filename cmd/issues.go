@@ -61,6 +61,35 @@ var issuesCmd = &cobra.Command{
 	},
 }
 
+func GetAllIssues(jiraClient *jira.Client, jql string) []jira.Issue {
+
+	opt := &jira.SearchOptionsV2{
+		MaxResults:    1000, // Max results can go up to 1000
+		NextPageToken: "",
+		Fields:        []string{"*all"},
+	}
+	retIssues := []jira.Issue{}
+	for {
+
+		issues, resp, err := jiraClient.Issue.SearchV2JQL(jql, opt)
+		if err != nil {
+			body, _ := io.ReadAll(resp.Body)
+			fmt.Println(string(body))
+			panic(err)
+		}
+
+		retIssues = append(retIssues, issues...)
+
+		if resp.IsLast {
+			break
+		}
+
+		opt.NextPageToken = resp.NextPageToken
+	}
+
+	return retIssues
+}
+
 func init() {
 	RootCmd.AddCommand(issuesCmd)
 
